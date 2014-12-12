@@ -1,0 +1,95 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_arith.all;
+use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
+
+use work.fixed_float_types.all; -- ieee_proposed for VHDL-93 version
+use work.fixed_pkg.all; -- ieee_proposed for compatibility version
+
+entity processor is 
+	port (
+			
+		-- async receiver/transmitter com ports
+		clk		:	in	std_logic;
+		rxReady	:	in	std_logic;
+		rxData	:	in	std_logic_vector(7 downto 0); -- command string (character)
+		txBusy	:	in	std_logic; 
+		txStart	:	out std_logic; 
+		txData	:	out std_logic_vector(7 downto 0);
+		
+		-- control ports
+		ctrlChar	:	in character;
+		ctrlWrite:	in std_logic;						
+		ctrlCode	: 	out std_logic_vector(1 downto 0); 	-- control code (4 different commands)
+		
+		-- LEDs (for debugging)
+		LEDR		: 	out std_logic_vector (17 downto 0)
+		
+		);
+end processor;
+
+architecture behaviour of processor is
+
+	-- define the states of processor
+	type T_STATE is (r_state, w_state);
+	signal state, next_state	: 	T_STATE := r_state;
+	
+	begin
+	
+	-- mudança de estado
+   state_reg: process(clk)
+   begin
+		if (clk'event and clk='1') then
+			state <= next_state;
+		end if;
+   end process;						  
+
+	-- lógica combinacional
+	next_state_reg: process(clk, state)
+
+   begin
+			txStart <= '0';
+			ctrlCode <= "00";
+			LEDR(0) <= '1';
+			
+			if (ctrlWrite <= '1') then
+				next_state <= w_state;
+			else
+				next_state <= r_state;
+			end if;
+			
+			case state is
+				-- read user command (rxData)
+				when r_state =>
+				
+					-- wait for character (rxReady)
+					if(rxReady = '1') then
+						LEDR(2) <= '1';
+									
+						if(rxData = "01110011") then -- binary code for 's' (start)
+							ctrlCode <= "01";	-- turn on only LED2
+							LEDR(2) <= '1';
+							LEDR(1) <= '0';
+						else
+							ctrlCode <= "00"; -- turn on only LED1
+							LEDR(2) <= '0';
+							LEDR(1) <= '1';
+						end if;
+					
+					end if;
+					
+				-- output string
+				when w_state =>
+					if (txBusy = '0') then
+						txStart <= '1';
+						txData <= to_slv(ctrlChar);
+					end if;
+					
+				when others =>
+					null;
+					
+			end case;
+   end process;	
+end behaviour;
+

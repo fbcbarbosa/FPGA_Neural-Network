@@ -1,0 +1,13 @@
+
+State Machine - |serial|controller:inst2|state
+Name state.w2_state state.w1_state state.r_state state.begin_state 
+state.begin_state 0 0 0 0 
+state.r_state 0 0 1 1 
+state.w1_state 0 1 0 1 
+state.w2_state 1 0 0 1 
+
+State Machine - |serial|controller:inst2|message
+Name message.MSG_ERROR message.MSG_BEGIN message.MSG_NONE 
+message.MSG_NONE 0 0 0 
+message.MSG_BEGIN 0 1 1 
+message.MSG_ERROR 1 0 1 
